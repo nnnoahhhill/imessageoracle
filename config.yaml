@@ -1,0 +1,78 @@
+# Configuration for iMessage HTML processing pipeline
+
+# Globs or absolute paths to one or more HTML files/directories
+input_globs:
+  - "/Users/sidework/fuckin-around/the-oracle/input/**/*.html"
+  - "/Users/sidework/fuckin-around/the-oracle/data/**/*.html"
+
+# Identify "me" in the export (names or phone/email labels as they appear in the HTML)
+me_names:
+  - "Me"
+  - "You"
+  - "My Name Here"
+
+# CSS selectors that match your exporter. Adjust as needed.
+selectors:
+  message_container: "div.message"
+  sender: "span.sender"
+  timestamp: "span.timestamp"
+  content: "span.bubble"
+
+# Timestamp parsing format if the exporter provides a standard format.
+# If empty, timestamps will be kept as-is.
+timestamp_format: ""
+
+# Output directory for all generated artifacts
+output_dir: "/Users/sidework/fuckin-around/the-oracle/output"
+
+# Curation parameters
+curation:
+  join_consecutive_same_sender: true
+  max_chars_per_chunk: 1000
+  min_chars_per_chunk: 120
+  vader_positive_threshold: 0.5
+  keywords: ["growth", "love", "future", "energy", "profound", "courage", "gratitude", "healing"]
+  use_ollama_scoring: true
+  ollama_model: "llama3"
+  ollama_min_score: 8
+  # OpenAI configuration (can be overridden by environment variables)
+  openai_model: "gpt-4o"
+  # OpenRouter configuration - using more sophisticated models
+  openrouter_model: "openai/gpt-4o"  # or "anthropic/claude-3.5-sonnet" for deep reasoning
+  # Extended thinking mode (multiple reasoning passes)
+  extended_thinking: true
+  max_thinking_passes: 3
+
+# Embedding and retrieval
+embedding:
+  provider: "ollama"
+  embed_model: "nomic-embed-text"
+  prefix: "Uplifting growth energy: "
+
+retrieval:
+  top_k: 60  # Retrieve more initially for reranking
+  final_top_k: 20  # After reranking
+  weight_vector: 0.5
+  weight_keyword: 0.5
+  use_reranking: true  # Rerank results using LLM for better relevance
+  expand_query: true  # Expand query with related terms
+
+# Whoosh index directory (inside output_dir)
+whoosh_dir_name: "whoosh"
+
+# SQLite DB filename (inside output_dir)
+sqlite_filename: "messages.sqlite"
+
+# HNSW index filename (inside output_dir)
+hnswlib_filename: "index.bin"
+
+# iMessage extraction settings (direct database access)
+imessage_extraction:
+  database_path: "~/Library/Messages/chat.db"
+  raw_messages_filename: "raw_messages.jsonl"
+
+# Chunking settings for converting raw messages to semantic units
+chunking:
+  max_messages_per_chunk: 20
+  max_hours_per_chunk: 72
+  chunked_messages_filename: "chunked_messages.jsonl"

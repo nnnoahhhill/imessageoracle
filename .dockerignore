@@ -1,0 +1,57 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+venv
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.pytest_cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.cache
+.mypy_cache
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (will be mounted as volume)
+data/
+input/
+output/
+
+# Documentation
+*.md
+!readme.md
+
+# Config files that might contain secrets
+.env
+.env.local
+
+# Development files
+Makefile
+scripts/
+agent/
+ui/
+
+# Deployment files
+fly.toml

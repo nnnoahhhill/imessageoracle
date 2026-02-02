@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Oracle - Your Personal AI Journal</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .panel {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .message.user {
+            background: #667eea;
+            color: white;
+        }
+
+        .message.assistant {
+            background: #e9ecef;
+        }
+
+        .sources {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .sources-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            user-select: none;
+        }
+
+        .sources-header:hover {
+            background: #e9ecef;
+        }
+
+        .sources-toggle {
+            font-size: 0.8em;
+            transition: transform 0.2s;
+        }
+
+        .sources-header.collapsed .sources-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .sources-content {
+            margin-top: 8px;
+        }
+
+        .source {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-left: 3px solid #667eea;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #495057;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .conversation-dropdown {
+            padding: 12px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        .conversation-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .ollama-status {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+
+        .ollama-status-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ollama-status.running {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .ollama-status.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
+        .ollama-status.checking {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+
+        .source-preview {
+            margin: 8px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .source-preview:hover {
+            background: #e9ecef;
+            border-color: #667eea;
+        }
+
+        .source-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .source-conversation {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .source-date {
+            color: #6c757d;
+        }
+
+        .source-preview-text {
+            color: #495057;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .source-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .source-modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .source-modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .source-modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .source-modal-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .source-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6c757d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .source-modal-close:hover {
+            color: #000;
+        }
+
+        .source-modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .source-modal-body .message-line-container {
+            margin-bottom: 12px;
+        }
+
+        .source-modal-body .message-line-container.sent {
+            text-align: right;
+        }
+
+        .source-modal-body .message-line-container.received {
+            text-align: left;
+        }
+
+        .source-modal-body .message-info {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-bottom: 4px;
+        }
+
+        .source-modal-body .message-content {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 12px;
+            max-width: 70%;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .source-modal-body .message-line-container.sent .message-content {
+            background: #667eea;
+            color: white;
+        }
+
+        .source-modal-body .message-line-container.received .message-content {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .conversation-item {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .conversation-item:hover {
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+
+        .conversation-item.active {
+            background: #e7f3ff;
+            border-color: #667eea;
+        }
+
+        .conversation-item-title {
+            font-weight: 600;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+            color: #333;
+        }
+
+        .conversation-item-date {
+            font-size: 0.75em;
+            color: #6c757d;
+        }
+
+        .input-container input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-container button {
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .input-container button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .input-container button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .database-search {
+            margin-bottom: 20px;
+        }
+
+        .database-search input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .database-results {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .database-item {
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #667eea;
+        }
+
+        .database-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .database-item-content {
+            padding: 2px 0;
+        }
+
+        .message-bubble-container {
+            display: flex;
+            margin-bottom: 2px;
+            width: 100%;
+        }
+
+        .message-bubble-container.sent {
+            justify-content: flex-end;
+        }
+
+        .message-bubble-container.received {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message-bubble.sent {
+            color: #667eea;
+            text-align: right;
+        }
+
+        .message-bubble.received {
+            color: #212529;
+            text-align: left;
+        }
+
+        .message-bubble-header {
+            font-size: 0.75em;
+            opacity: 0.7;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 400;
+        }
+
+        .message-bubble-container.sent .message-bubble-header {
+            justify-content: flex-end;
+        }
+
+        .message-bubble-container.received .message-bubble-header {
+            justify-content: flex-start;
+        }
+
+        .message-bubble-content {
+            line-height: 1.4;
+            font-size: 0.9em;
+        }
+
+        .message-bubble-time {
+            font-size: 0.7em;
+            opacity: 0.6;
+            margin-left: 6px;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .filter-group input, .filter-group select {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .message-date-header {
+            font-weight: 500;
+            color: #6c757d;
+            margin-bottom: 3px;
+            margin-top: 8px;
+            font-size: 0.85em;
+        }
+
+        .stats-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #dee2e6;
+            user-select: none;
+        }
+
+        .stats-header:hover {
+            background: #e9ecef;
+        }
+
+        .stats-header h3 {
+            margin: 0;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .stats-toggle {
+            font-size: 1.5em;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .stats-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .stats-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .stats-content.expanded {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .progress-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .progress-title {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .progress-status {
+            font-size: 0.9em;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+
+        .progress-status.running {
+            background: #667eea;
+            color: white;
+        }
+
+        .progress-status.completed {
+            background: #28a745;
+            color: white;
+        }
+
+        .progress-status.error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 24px;
+            background: #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .progress-message {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .analytics-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #dee2e6;
+        }
+
+        .analytics-section h3 {
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .word-tag {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.9em;
+        }
+
+
+        .settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .form-group button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .conversation-selector {
+            margin-bottom: 20px;
+        }
+
+        .conversation-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('chat')">💬 Chat</button>
+            <button class="tab" onclick="showTab('database')">📚 Message Library</button>
+            <button class="tab" onclick="showTab('settings')">⚙️ Settings</button>
+        </div>
+
+        <!-- Chat Tab -->
+        <div id="chat" class="panel active">
+            <div id="ollamaStatus" class="ollama-status" style="display: none;">
+                <div class="ollama-status-content">
+                    <span id="ollamaStatusIcon">⏳</span>
+                    <span id="ollamaStatusText">Checking Ollama status...</span>
+                    <button id="ollamaStartButton" onclick="startOllama()" style="display: none; margin-left: 10px; padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+                        Start Ollama
+                    </button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 16px; height: calc(100vh - 200px);">
+                <!-- Conversation History Sidebar -->
+                <div style="width: 250px; border-right: 1px solid #dee2e6; padding-right: 16px; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0; font-size: 1em;">💬 Conversations</h3>
+                        <button onclick="newConversation()" style="padding: 4px 8px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em;">New</button>
+                    </div>
+                    <div id="chatConversationsList" style="display: flex; flex-direction: column; gap: 4px;">
+                        <div class="loading" style="padding: 10px;">
+                            <p style="font-size: 0.9em; color: #6c757d;">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Main Chat Area -->
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <div class="chat-container" style="flex: 1; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 8px 0; border-bottom: 1px solid #dee2e6;">
+                            <div>
+                                <input type="text" id="conversationTitle" placeholder="Untitled Conversation" style="border: none; font-size: 1.1em; font-weight: 600; padding: 4px; width: 300px; background: transparent;" onblur="saveCurrentConversation()">
+                            </div>
+                            <button onclick="saveCurrentConversation()" style="padding: 6px 12px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">💾 Save</button>
+                        </div>
+                        <div class="chat-messages" id="chatMessages" style="flex: 1; overflow-y: auto;">
+                            <div class="message assistant">
+                                <p>👋 Ask me anything about your message history.</p>
+                            </div>
+                        </div>
+                        <div class="input-container">
+                            <input type="text" id="queryInput" placeholder="" onkeypress="handleKeyPress(event)">
+                            <select id="conversationFilter" class="conversation-dropdown">
+                                <option value="">All Conversations</option>
+                            </select>
+                            <button onclick="sendQuery()" id="sendButton">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Tab -->
+        <div id="database" class="panel">
+            <div class="stats-container" id="statsContainer">
+                <div class="stats-header" onclick="toggleStats()">
+                    <h3>📊 Message Statistics</h3>
+                    <span class="stats-toggle collapsed" id="statsToggle">▼</span>
+                </div>
+                <div class="stats-content" id="statsContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading stats...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Search</label>
+                    <input type="text" id="dbSearchInput" placeholder="Search messages..." onkeyup="debounceSearch()">
+                </div>
+                <div class="filter-group">
+                    <label>Phone Number</label>
+                    <select id="phoneFilter" onchange="searchDatabase()">
+                        <option value="">All Numbers</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Date From</label>
+                    <input type="datetime-local" id="dateFrom" onchange="searchDatabase()">
+                </div>
+                <div class="filter-group">
+                    <label>Date To</label>
+                    <input type="datetime-local" id="dateTo" onchange="searchDatabase()">
+                </div>
+                <div class="filter-group">
+                    <label>Sort Order</label>
+                    <select id="sortOrder" onchange="searchDatabase()">
+                        <option value="desc">Newest First</option>
+                        <option value="asc">Oldest First</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 0.9em; color: #6c757d;">
+                <span id="messageCountDisplay">Loading...</span>
+            </div>
+            <div class="database-results" id="databaseResults">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading messages...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="panel">
+            <h2 style="margin-bottom: 20px;">Import & Process Conversations</h2>
+            
+            <!-- Progress Section -->
+            <div id="progressSection" style="margin-bottom: 30px; display: none;">
+                <h3 style="margin-bottom: 15px;">🔄 Active Jobs</h3>
+                <div id="progressContainer"></div>
+            </div>
+            
+            <!-- Instructions -->
+            <div style="background: #e7f3ff; border-left: 4px solid #667eea; padding: 15px; margin-bottom: 30px; border-radius: 4px;">
+                <h3 style="margin-top: 0; color: #667eea;">📋 How to Add Conversations</h3>
+                <ol style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
+                    <li><strong>Extract all messages:</strong> Run <code>python3 scripts/extract_imessage.py --all</code> in your terminal to extract all messages from chat.db</li>
+                    <li><strong>Select contacts below:</strong> Check the contacts you want to include</li>
+                    <li><strong>Name your conversation:</strong> Give it a friendly name (e.g., "Mom", "Work Friends")</li>
+                    <li><strong>Process:</strong> Click "Process Selected Contacts" - this will chunk and index them locally</li>
+                    <li><strong>Or import HTML:</strong> Upload an HTML export file below if you have one</li>
+                </ol>
+            </div>
+            
+            <!-- Select Contacts from raw_messages.jsonl -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="margin-bottom: 15px;">Select Contacts from Extracted Messages</h3>
+                <p style="color: #6c757d; margin-bottom: 15px; font-size: 0.9em;">
+                    These are all the contacts found in your <code>data/raw_messages.jsonl</code> file. 
+                    Select which ones you want to include in your Oracle.
+                </p>
+                <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="contactSearch" placeholder="Search contacts..." style="flex: 1; min-width: 200px; padding: 8px; border: 1px solid #dee2e6; border-radius: 4px;" onkeyup="debounceSearchContacts()">
+                    <button onclick="selectAllContacts()" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Select All</button>
+                    <button onclick="deselectAllContacts()" style="padding: 8px 15px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Deselect All</button>
+                </div>
+                <div id="rawContacts" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading contacts...</p>
+                    </div>
+                </div>
+                <div id="contactsPagination" style="margin-top: 10px; display: none; text-align: center;">
+                    <button id="contactsPrev" onclick="loadContactsPage(-1)" style="padding: 6px 12px; margin-right: 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Previous</button>
+                    <span id="contactsPageInfo">Page 1</span>
+                    <button id="contactsNext" onclick="loadContactsPage(1)" style="padding: 6px 12px; margin-left: 10px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Next</button>
+                </div>
+                <div style="margin-top: 15px;">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Conversation Name</label>
+                        <input type="text" id="selectedContactsName" placeholder="e.g., 'Mom', 'Work Friends', 'All Messages', etc." style="width: 100%;">
+                    </div>
+                    <button onclick="processSelectedContacts()" style="padding: 12px 24px; background: #28a745; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">
+                        Process Selected Contacts & Rebuild Indexes
+                    </button>
+                    <p style="font-size: 0.85em; color: #6c757d; margin-top: 10px;">
+                        This will filter your messages, chunk them, and rebuild all indexes. This may take a few minutes.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Available Conversations from chat.db -->
+            <div style="margin-bottom: 30px; padding-top: 20px; border-top: 2px solid #dee2e6;">
+                <h3 style="margin-bottom: 15px;">Import Individual Conversations from chat.db</h3>
+                <p style="color: #6c757d; margin-bottom: 15px; font-size: 0.9em;">
+                    Or import specific conversations directly from your Messages database.
+                </p>
+                <div id="availableConversations" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading conversations...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- HTML Import -->
+            <div style="margin-bottom: 30px; padding-top: 20px; border-top: 2px solid #dee2e6;">
+                <h3 style="margin-bottom: 15px;">Import HTML Export</h3>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label>HTML Export File</label>
+                        <input type="file" id="htmlFile" accept=".html">
+                    </div>
+                    <div class="form-group">
+                        <label>Conversation Name</label>
+                        <input type="text" id="htmlConversationName" placeholder="e.g., 'Mom', 'Work Chat', etc.">
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="htmlIsGroup"> This is a group chat
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <button onclick="importHtmlExport()">Import HTML</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rebuild Indexes -->
+            <div style="margin-bottom: 30px; padding-top: 20px; border-top: 2px solid #dee2e6;">
+                <h3 style="margin-bottom: 15px;">Index Management</h3>
+                <div class="form-group">
+                    <button onclick="rebuildIndexes()">Rebuild Indexes</button>
+                    <p style="font-size: 0.9em; color: #6c757d; margin-top: 10px;">
+                        After importing conversations, rebuild indexes to make them searchable.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        let databaseTabLoaded = false;
+        let currentConversationId = null;
+        
+        // Conversation management
+        async function loadChatConversations() {
+            try {
+                const response = await fetch(`${API_BASE}/chat-conversations`);
+                const data = await response.json();
+                const listDiv = document.getElementById('chatConversationsList');
+                
+                if (data.conversations && data.conversations.length > 0) {
+                    listDiv.innerHTML = data.conversations.map(conv => {
+                        const date = new Date(conv.updated_at);
+                        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const isActive = currentConversationId === conv.id ? 'active' : '';
+                        return `
+                            <div class="conversation-item ${isActive}" onclick="loadConversation('${conv.id}')">
+                                <div class="conversation-item-title">${escapeHtml(conv.title || 'Untitled')}</div>
+                                <div class="conversation-item-date">${dateStr}</div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    listDiv.innerHTML = '<div style="padding: 10px; color: #6c757d; font-size: 0.9em;">No saved conversations</div>';
+                }
+            } catch (error) {
+                log(`Error loading conversations: ${error.message}`, 'error');
+                document.getElementById('chatConversationsList').innerHTML = 
+                    '<div style="padding: 10px; color: #dc3545; font-size: 0.9em;">Error loading conversations</div>';
+            }
+        }
+
+        async function loadConversation(conversationId) {
+            try {
+                const response = await fetch(`${API_BASE}/chat-conversations/${conversationId}`);
+                const data = await response.json();
+                
+                currentConversationId = conversationId;
+                document.getElementById('conversationTitle').value = data.title || 'Untitled Conversation';
+                
+                // Clear and reload messages
+                const messagesDiv = document.getElementById('chatMessages');
+                messagesDiv.innerHTML = '';
+                
+                data.messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `message ${msg.role === 'user' ? 'user' : 'assistant'}`;
+                    msgDiv.innerHTML = `<p>${escapeHtml(msg.content)}</p>`;
+                    messagesDiv.appendChild(msgDiv);
+                });
+                
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
+                // Reload conversation list to update active state
+                loadChatConversations();
+            } catch (error) {
+                log(`Error loading conversation: ${error.message}`, 'error');
+                alert('Failed to load conversation');
+            }
+        }
+
+        async function saveCurrentConversation() {
+            const title = document.getElementById('conversationTitle').value || 'Untitled Conversation';
+            const messagesDiv = document.getElementById('chatMessages');
+            const messages = [];
+            
+            // Extract messages from DOM
+            messagesDiv.querySelectorAll('.message').forEach(msgEl => {
+                const role = msgEl.classList.contains('user') ? 'user' : 'assistant';
+                const content = msgEl.querySelector('p')?.textContent || '';
+                if (content.trim() && !content.includes('👋 Ask me anything')) {
+                    messages.push({
+                        role: role,
+                        content: content,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            });
+            
+            // Only save if there are actual messages (not just the welcome message)
+            if (messages.length === 0 && !currentConversationId) {
+                return; // Don't create empty conversations
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/chat-conversations`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        id: currentConversationId,
+                        title: title,
+                        messages: messages
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    currentConversationId = data.id;
+                    log('Conversation saved', 'success');
+                    loadChatConversations();
+                }
+            } catch (error) {
+                log(`Error saving conversation: ${error.message}`, 'error');
+                // Don't alert on auto-save failures, only on manual saves
+            }
+        }
+
+        function newConversation() {
+            currentConversationId = null;
+            document.getElementById('conversationTitle').value = 'Untitled Conversation';
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.innerHTML = '<div class="message assistant"><p>👋 Ask me anything about your message history.</p></div>';
+            // Create new conversation immediately
+            saveCurrentConversation();
+        }
+        
+        // Ollama status checking
+        async function checkOllamaStatus() {
+            const statusDiv = document.getElementById('ollamaStatus');
+            const statusIcon = document.getElementById('ollamaStatusIcon');
+            const statusText = document.getElementById('ollamaStatusText');
+            const startButton = document.getElementById('ollamaStartButton');
+            
+            if (!statusDiv) return;
+            
+            statusDiv.style.display = 'block';
+            statusDiv.className = 'ollama-status checking';
+            statusIcon.textContent = '⏳';
+            statusText.textContent = 'Checking Ollama status...';
+            startButton.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/ollama/status`);
+                const data = await response.json();
+                
+                if (data.running) {
+                    statusDiv.className = 'ollama-status running';
+                    statusIcon.textContent = '✅';
+                    const modelCount = data.models ? data.models.length : 0;
+                    statusText.textContent = `Ollama is running (${modelCount} model${modelCount !== 1 ? 's' : ''} available)`;
+                    startButton.style.display = 'none';
+                } else {
+                    statusDiv.className = 'ollama-status error';
+                    statusIcon.textContent = '❌';
+                    statusText.textContent = `Ollama is not running: ${data.error || 'Unknown error'}`;
+                    startButton.style.display = 'inline-block';
+                }
+            } catch (error) {
+                statusDiv.className = 'ollama-status error';
+                statusIcon.textContent = '❌';
+                statusText.textContent = `Failed to check Ollama status: ${error.message}`;
+                startButton.style.display = 'inline-block';
+            }
+        }
+        
+        async function startOllama() {
+            const statusDiv = document.getElementById('ollamaStatus');
+            const statusIcon = document.getElementById('ollamaStatusIcon');
+            const statusText = document.getElementById('ollamaStatusText');
+            const startButton = document.getElementById('ollamaStartButton');
+            
+            statusDiv.className = 'ollama-status checking';
+            statusIcon.textContent = '⏳';
+            statusText.textContent = 'Starting Ollama...';
+            startButton.disabled = true;
+            startButton.textContent = 'Starting...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/ollama/start`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.className = 'ollama-status running';
+                    statusIcon.textContent = '✅';
+                    statusText.textContent = data.message || 'Ollama started successfully';
+                    startButton.style.display = 'none';
+                } else {
+                    statusDiv.className = 'ollama-status error';
+                    statusIcon.textContent = '❌';
+                    statusText.textContent = `Failed to start: ${data.error || 'Unknown error'}`;
+                    if (data.suggestion) {
+                        statusText.textContent += ` (${data.suggestion})`;
+                    }
+                    startButton.disabled = false;
+                    startButton.textContent = 'Start Ollama';
+                }
+                
+                // Re-check status after a moment
+                setTimeout(checkOllamaStatus, 2000);
+            } catch (error) {
+                statusDiv.className = 'ollama-status error';
+                statusIcon.textContent = '❌';
+                statusText.textContent = `Error starting Ollama: ${error.message}`;
+                startButton.disabled = false;
+                startButton.textContent = 'Start Ollama';
+            }
+        }
+        
+        function showTab(tabName) {
+            log(`Switching to tab: ${tabName}`);
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // Check Ollama status and load conversations when chat tab is shown
+            if (tabName === 'chat') {
+                checkOllamaStatus();
+                loadChatConversations();
+            }
+            
+            // Load messages when database tab is first shown
+            if (tabName === 'database') {
+                log('Loading database tab - fetching stats and messages');
+                loadStats();
+                if (!databaseTabLoaded) {
+                    databaseTabLoaded = true;
+                    searchDatabase(true);
+                }
+                // Set up scroll listener for infinite scroll
+                setTimeout(() => {
+                    const resultsDiv = document.getElementById('databaseResults');
+                    if (resultsDiv && !resultsDiv.dataset.scrollListenerAdded) {
+                        resultsDiv.addEventListener('scroll', checkScrollAndLoad);
+                        resultsDiv.dataset.scrollListenerAdded = 'true';
+                    }
+                }, 100);
+            } else if (tabName === 'settings') {
+                log('Loading settings tab - fetching contacts and conversations');
+                loadRawContacts();
+                loadAvailableConversations();
+                startJobPolling();
+            } else {
+                stopJobPolling();
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendQuery();
+            }
+        }
+
+        async function sendQuery() {
+            const input = document.getElementById('queryInput');
+            const query = input.value.trim();
+            if (!query) {
+                log('sendQuery() called but query is empty');
+                return;
+            }
+
+            log(`sendQuery() called - Query: "${query}"`);
+            const messagesDiv = document.getElementById('chatMessages');
+            const sendButton = document.getElementById('sendButton');
+            const conversationFilter = document.getElementById('conversationFilter').value;
+            log(`Conversation filter: "${conversationFilter || 'none'}"`);
+
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'message user';
+            userMsg.innerHTML = `<p>${query}</p>`;
+            messagesDiv.appendChild(userMsg);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // Clear input and disable button
+            input.value = '';
+            sendButton.disabled = true;
+
+            // Show loading
+            const loading = document.createElement('div');
+            loading.className = 'loading';
+            loading.innerHTML = '<div class="spinner"></div><p>Thinking...</p>';
+            messagesDiv.appendChild(loading);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const params = new URLSearchParams({ query });
+                if (conversationFilter) {
+                    params.append('conversation_id', conversationFilter);
+                }
+
+                const url = `${API_BASE}/chat?${params}`;
+                log(`Fetching chat response: ${url}`);
+                const startTime = Date.now();
+                const response = await fetch(url);
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Chat response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+                
+                // Check if response is OK
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`Chat request failed: ${response.status} - ${errorText}`, 'error');
+                    throw new Error(`Server error (${response.status}): ${errorText}`);
+                }
+                
+                const data = await response.json();
+                log(`Chat response received, sources: ${data.sources ? data.sources.length : 0}`);
+                log('Response data:', data);
+
+                // Remove loading
+                loading.remove();
+
+                // Check if response field exists
+                if (!data.response) {
+                    log('No response field in data', 'error');
+                    throw new Error('No response received from server');
+                }
+
+                // Add assistant response
+                const assistantMsg = document.createElement('div');
+                assistantMsg.className = 'message assistant';
+                let sourcesHtml = '';
+                if (data.sources && data.sources.length > 0) {
+                    sourcesHtml = `
+                        <div class="sources">
+                            <div class="sources-header" onclick="toggleSources(this)">
+                                <strong>References (${data.sources.length})</strong>
+                                <span class="sources-toggle">▼</span>
+                            </div>
+                            <div class="sources-content" style="display: none;">
+                    `;
+                    data.sources.forEach((source, i) => {
+                        // Handle both old string format and new object format
+                        if (typeof source === 'string') {
+                            sourcesHtml += `<div class="source">${i + 1}. ${source}</div>`;
+                        } else {
+                            const preview = escapeHtml(source.preview || source.full_content || '');
+                            const conversation = escapeHtml(source.conversation || 'Unknown');
+                            const date = source.date || 'Unknown date';
+                            sourcesHtml += `
+                                <div class="source-preview" onclick="showSourceModal(${i})" data-source-index="${i}">
+                                    <div class="source-header">
+                                        <span class="source-conversation">${conversation}</span>
+                                        <span class="source-date">${date}</span>
+                                    </div>
+                                    <div class="source-preview-text">${preview}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                    sourcesHtml += '</div></div>';
+                    // Store sources data for modal
+                    assistantMsg.dataset.sources = JSON.stringify(data.sources);
+                }
+                assistantMsg.innerHTML = `<p>${data.response}</p>${sourcesHtml}`;
+                messagesDiv.appendChild(assistantMsg);
+                // Don't scroll to bottom - keep response visible
+                
+                // Auto-save conversation after response
+                setTimeout(() => saveCurrentConversation(), 500);
+            } catch (error) {
+                log(`Error in sendQuery: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                loading.remove();
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'message assistant';
+                errorMsg.innerHTML = `<p style="color: red;">Error: ${error.message}</p><p style="color: #666; font-size: 0.9em;">Check the browser console for more details.</p>`;
+                messagesDiv.appendChild(errorMsg);
+            } finally {
+                sendButton.disabled = false;
+                input.focus();
+            }
+        }
+
+        let currentSearchParams = null;
+        let allMessages = [];
+        let currentOffset = 0;
+        let isLoadingMore = false;
+        let hasMoreMessages = true;
+        const BATCH_SIZE = 50;
+
+        function debounceSearch() {
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                searchDatabase(true);
+            }, 300);
+        }
+
+        async function searchDatabase(reset = true) {
+            const query = document.getElementById('dbSearchInput').value.trim();
+            const phoneFilter = document.getElementById('phoneFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            const resultsDiv = document.getElementById('databaseResults');
+            
+            log(`searchDatabase() called - Query: "${query}", Filter: "${phoneFilter}", DateFrom: "${dateFrom}", DateTo: "${dateTo}", Sort: "${sortOrder}"`);
+            
+            // Reload stats when filters change
+            loadStats();
+
+            // Reset if new search
+            if (reset) {
+                resultsDiv.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading messages...</p></div>';
+                allMessages = [];
+                currentOffset = 0;
+                hasMoreMessages = true;
+                
+                // Update count display
+                const countDisplay = document.getElementById('messageCountDisplay');
+                if (countDisplay) {
+                    countDisplay.textContent = 'Loading...';
+                }
+                
+                // Store current search params
+                currentSearchParams = {
+                    query, phoneFilter, dateFrom, dateTo, sortOrder
+                };
+            }
+
+            if (isLoadingMore || !hasMoreMessages) return;
+            isLoadingMore = true;
+
+            try {
+                // Build query params
+                const params = new URLSearchParams();
+                if (query) params.append('q', query);
+                if (phoneFilter) params.append('conversation_id', phoneFilter);
+                if (dateFrom) params.append('date_from', dateFrom);
+                if (dateTo) params.append('date_to', dateTo);
+                params.append('sort_order', sortOrder);
+                params.append('limit', BATCH_SIZE.toString());
+                params.append('offset', currentOffset.toString());
+
+                const url = `${API_BASE}/search?${params.toString()}`;
+                log(`Fetching batch: offset=${currentOffset}, limit=${BATCH_SIZE}`);
+                const startTime = Date.now();
+                const response = await fetch(url);
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                log(`Received ${data.results ? data.results.length : 0} results (total: ${data.total || 0}, has_more: ${data.has_more || false})`);
+
+                if (data.results && data.results.length > 0) {
+                    // Add new messages to our collection
+                    allMessages.push(...data.results);
+                    hasMoreMessages = data.has_more || false;
+                    currentOffset += data.results.length;
+                    
+                    // Render all messages incrementally
+                    renderMessages(allMessages, resultsDiv, reset);
+                    
+                    // Show loading more indicator if there are more
+                    if (hasMoreMessages) {
+                        const loadingMore = document.getElementById('loadingMore');
+                        if (loadingMore) {
+                            loadingMore.remove();
+                        }
+                        const loadingDiv = document.createElement('div');
+                        loadingDiv.id = 'loadingMore';
+                        loadingDiv.className = 'loading';
+                        loadingDiv.innerHTML = '<div class="spinner"></div><p>Loading more messages...</p>';
+                        loadingDiv.style.textAlign = 'center';
+                        loadingDiv.style.padding = '20px';
+                        resultsDiv.appendChild(loadingDiv);
+                        
+                        // Auto-load more when scrolling near bottom
+                        setTimeout(() => {
+                            checkScrollAndLoad();
+                        }, 100);
+                    } else {
+                        const loadingMore = document.getElementById('loadingMore');
+                        if (loadingMore) {
+                            loadingMore.remove();
+                        }
+                    }
+                } else if (reset && allMessages.length === 0) {
+                    resultsDiv.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 40px;">No messages found.</p>';
+                } else {
+                    hasMoreMessages = false;
+                    const loadingMore = document.getElementById('loadingMore');
+                    if (loadingMore) {
+                        loadingMore.remove();
+                    }
+                    // Update count display
+                    const countDisplay = document.getElementById('messageCountDisplay');
+                    if (countDisplay) {
+                        countDisplay.textContent = `Loaded ${allMessages.length.toLocaleString()} messages (all loaded)`;
+                    }
+                }
+            } catch (error) {
+                log(`Error loading messages: ${error.message}`, 'error');
+                if (reset) {
+                    resultsDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                }
+            } finally {
+                isLoadingMore = false;
+            }
+        }
+
+        function renderMessages(messages, container, reset = false) {
+            if (reset) {
+                container.innerHTML = '';
+            }
+            
+            // Update message count display
+            const countDisplay = document.getElementById('messageCountDisplay');
+            if (countDisplay) {
+                countDisplay.textContent = `Loaded ${messages.length.toLocaleString()} messages${hasMoreMessages ? ' (loading more...)' : ''}`;
+            }
+            
+            // Group messages by day (day_key)
+            const grouped = {};
+            messages.forEach(item => {
+                const dayKey = item.day_key || item.display_date || 'Unknown';
+                if (!grouped[dayKey]) {
+                    grouped[dayKey] = {
+                        date: item.display_date || dayKey, // Full date like "Jan 1, 2025"
+                        day_key: dayKey,
+                        conversation_id: item.conversation_id,
+                        messages: []
+                    };
+                }
+                grouped[dayKey].messages.push(item);
+            });
+
+            // Sort groups by day_key (chronological order)
+            const sortedGroups = Object.values(grouped).sort((a, b) => {
+                // Sort by day_key (YYYY-MM-DD format) - descending for newest first
+                const sortOrder = document.getElementById('sortOrder')?.value || 'desc';
+                if (sortOrder === 'desc') {
+                    return b.day_key.localeCompare(a.day_key);
+                } else {
+                    return a.day_key.localeCompare(b.day_key);
+                }
+            });
+
+            // Render grouped messages
+            const html = sortedGroups.map(group => {
+                // Extract conversation name (before the parentheses)
+                const convName = group.conversation_id.split('(')[0].trim();
+                const isGroup = group.messages[0]?.is_group || false;
+                const groupIndicator = isGroup ? '<span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 10px;">Group Chat</span>' : '';
+                
+                // Render each message - simple left/right alignment
+                const messagesHtml = group.messages.map(msg => {
+                    const direction = msg.direction === 'me' ? 'sent' : 'received';
+                    const sender = direction === 'sent' ? 'You' : 'Them';
+                    const content = escapeHtml(msg.content || '');
+                    const time = msg.display_time || '';
+                    
+                    return `
+                        <div class="message-bubble-container ${direction}">
+                            <div class="message-bubble ${direction}">
+                                <div class="message-bubble-header">
+                                    <span>${sender}</span>
+                                    <span class="message-bubble-time">${time}</span>
+                                </div>
+                                <div class="message-bubble-content">${content}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                return `
+                    <div class="database-item">
+                        <div class="message-date-header">
+                            ${group.date} - ${convName}${groupIndicator}
+                        </div>
+                        <div class="database-item-content">${messagesHtml}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            if (reset) {
+                container.innerHTML = html;
+            } else {
+                // Remove loading indicator and append new content
+                const loadingMore = document.getElementById('loadingMore');
+                if (loadingMore) {
+                    loadingMore.remove();
+                }
+                container.insertAdjacentHTML('beforeend', html);
+            }
+        }
+
+        function checkScrollAndLoad() {
+            const resultsDiv = document.getElementById('databaseResults');
+            if (!resultsDiv) return;
+            
+            // Check if near bottom (within 500px)
+            const scrollPosition = resultsDiv.scrollTop + resultsDiv.clientHeight;
+            const scrollHeight = resultsDiv.scrollHeight;
+            
+            if (scrollHeight - scrollPosition < 500 && hasMoreMessages && !isLoadingMore) {
+                log('Near bottom, loading more messages...');
+                searchDatabase(false);
+            }
+        }
+
+
+        async function uploadConversation() {
+            const fileInput = document.getElementById('conversationFile');
+            const nameInput = document.getElementById('conversationName');
+            const file = fileInput.files[0];
+            const name = nameInput.value.trim();
+
+            if (!file || !name) {
+                alert('Please select a file and enter a conversation name.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('name', name);
+
+            try {
+                const response = await fetch(`${API_BASE}/upload-conversation`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('Conversation uploaded successfully! Rebuilding indexes...');
+                    await rebuildIndexes();
+                    fileInput.value = '';
+                    nameInput.value = '';
+                } else {
+                    alert('Upload failed. Please try again.');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function rebuildIndexes() {
+            log('rebuildIndexes() called');
+            try {
+                log(`POSTing to ${API_BASE}/rebuild-indexes`);
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/rebuild-indexes`, {
+                    method: 'POST'
+                });
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Rebuild response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.job_id) {
+                        log(`Rebuild started with job_id: ${data.job_id}`, 'success');
+                        activeJobs[data.job_id] = {status: 'running', progress: 0, message: 'Starting index rebuild...'};
+                        displayProgress();
+                        document.getElementById('progressSection').style.display = 'block';
+                        alert('Index rebuild started! You can monitor progress above. The job will continue in the background.');
+                    } else {
+                        log('Indexes rebuilt successfully', 'success');
+                        log('Response:', data);
+                        alert('Indexes rebuilt successfully!');
+                        log('Reloading conversations...');
+                        await loadConversations();
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`Rebuild failed: ${response.status} - ${errorText}`, 'error');
+                    alert('Failed to rebuild indexes.');
+                }
+            } catch (error) {
+                log(`Error rebuilding indexes: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function loadConversations() {
+            try {
+                const response = await fetch(`${API_BASE}/conversations`);
+                const data = await response.json();
+
+                const select = document.getElementById('conversationFilter');
+                const phoneSelect = document.getElementById('phoneFilter');
+                
+                select.innerHTML = '<option value="">All Conversations</option>';
+                phoneSelect.innerHTML = '<option value="">All Numbers</option>';
+                
+                data.conversations.forEach(conv => {
+                    const option = document.createElement('option');
+                    option.value = conv.id;
+                    option.textContent = conv.name || conv.id;
+                    select.appendChild(option);
+                    
+                    const phoneOption = document.createElement('option');
+                    phoneOption.value = conv.id;
+                    phoneOption.textContent = conv.name || conv.id;
+                    phoneSelect.appendChild(phoneOption);
+                });
+            } catch (error) {
+                console.error('Failed to load conversations:', error);
+            }
+        }
+
+        function toggleStats() {
+            const content = document.getElementById('statsContent');
+            const toggle = document.getElementById('statsToggle');
+            if (content.classList.contains('expanded')) {
+                content.classList.remove('expanded');
+                toggle.classList.add('collapsed');
+            } else {
+                content.classList.add('expanded');
+                toggle.classList.remove('collapsed');
+            }
+        }
+
+        async function loadStats() {
+            log('loadStats() called');
+            const statsContent = document.getElementById('statsContent');
+            if (!statsContent) {
+                log('Stats content container not found!', 'error');
+                return;
+            }
+            
+            try {
+                const phoneFilter = document.getElementById('phoneFilter')?.value || '';
+                const params = phoneFilter ? `?conversation_id=${encodeURIComponent(phoneFilter)}` : '';
+                const url = `${API_BASE}/stats${params}`;
+                log(`Fetching stats: ${url}`);
+                const startTime = Date.now();
+                const response = await fetch(url);
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Stats response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                log('Stats data received:', data);
+                
+                if (data.error) {
+                    statsContent.innerHTML = `<p style="color: red;">${data.error}</p>`;
+                    return;
+                }
+                
+                const formatHour = (hour) => {
+                    if (hour === null) return 'N/A';
+                    const period = hour >= 12 ? 'PM' : 'AM';
+                    const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                    return `${displayHour}:00 ${period}`;
+                };
+                
+                statsContent.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">📤 Messages Sent</div>
+                            <div class="stat-value">${(data.total_sent || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📥 Messages Received</div>
+                            <div class="stat-value">${(data.total_received || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">💬 Total Messages</div>
+                            <div class="stat-value">${(data.total_messages || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📅 Avg Per Day</div>
+                            <div class="stat-value">${data.avg_per_day || 0}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">⏰ Avg Per Hour</div>
+                            <div class="stat-value">${(data.avg_per_hour || 0).toFixed(4)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📝 Total Words</div>
+                            <div class="stat-value">${(data.total_words || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">🔤 Total Characters</div>
+                            <div class="stat-value">${(data.total_chars || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📏 Avg Message Length</div>
+                            <div class="stat-value">${data.avg_message_length || 0} chars</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">⏱️ Time Typing</div>
+                            <div class="stat-value">${data.time_typing || '0m'}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">👁️ Time Reading</div>
+                            <div class="stat-value">${data.time_reading || '0m'}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">💭 Total Time Conversing</div>
+                            <div class="stat-value">${data.time_conversing || '0m'}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">🔗 Links Shared</div>
+                            <div class="stat-value">${(data.urls_count || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">😊 Emojis Used</div>
+                            <div class="stat-value">${(data.emojis_count || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">❓ Questions Asked</div>
+                            <div class="stat-value">${(data.questions_count || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">❗ Exclamations</div>
+                            <div class="stat-value">${(data.exclamations_count || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">🕐 Most Active Hour</div>
+                            <div class="stat-value">${formatHour(data.most_active_hour)}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📆 Most Active Day</div>
+                            <div class="stat-value">${data.most_active_weekday || 'N/A'}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">⚡ Avg Response Time</div>
+                            <div class="stat-value">${data.avg_response_hours ? data.avg_response_hours.toFixed(1) + 'h' : 'N/A'}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">📅 Conversation Span</div>
+                            <div class="stat-value">${data.span_years ? data.span_years.toFixed(1) + ' years' : 'N/A'}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">❓ Question Ratio</div>
+                            <div class="stat-value">${data.question_ratio || 0}%</div>
+                        </div>
+                    </div>
+                    <div class="analytics-section">
+                        <h3>🔤 Top Words</h3>
+                        <div style="margin-bottom: 15px;">
+                            ${data.top_words && data.top_words.length > 0 
+                                ? data.top_words.map(w => `<span class="word-tag">${w.word} (${w.count.toLocaleString()})</span>`).join('') 
+                                : '<span style="color: #6c757d;">No data available</span>'}
+                        </div>
+                    </div>
+                `;
+                log('Stats rendered successfully', 'success');
+            } catch (error) {
+                log(`Error loading stats: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                statsContent.innerHTML = `<p style="color: red;">Error loading stats: ${error.message}</p>`;
+            }
+        }
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            console.log(`[${timestamp}] ${prefix} ${message}`);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        let contactsCurrentPage = 0;
+        let contactsPageSize = 50;
+        let contactsSearchTerm = '';
+        let contactsTotal = 0;
+
+        function debounceSearchContacts() {
+            clearTimeout(window.contactsSearchTimeout);
+            window.contactsSearchTimeout = setTimeout(() => {
+                contactsCurrentPage = 0;
+                contactsSearchTerm = document.getElementById('contactSearch').value.trim();
+                loadRawContacts();
+            }, 300);
+        }
+
+        function loadContactsPage(direction) {
+            contactsCurrentPage += direction;
+            if (contactsCurrentPage < 0) contactsCurrentPage = 0;
+            loadRawContacts();
+        }
+
+        async function loadRawContacts() {
+            log('Loading raw contacts from API...');
+            const container = document.getElementById('rawContacts');
+            if (!container) {
+                log('Raw contacts container not found!', 'error');
+                return;
+            }
+            
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading contacts...</p></div>';
+            
+            try {
+                const offset = contactsCurrentPage * contactsPageSize;
+                const searchParam = contactsSearchTerm ? `&search=${encodeURIComponent(contactsSearchTerm)}` : '';
+                const url = `${API_BASE}/raw-contacts?limit=${contactsPageSize}&offset=${offset}${searchParam}`;
+                log(`Fetching ${url}`);
+                
+                const startTime = Date.now();
+                const response = await fetch(url);
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                contactsTotal = data.total || 0;
+                log(`Received ${data.contacts ? data.contacts.length : 0} contacts (total: ${contactsTotal})`);
+                
+                if (data.error) {
+                    log(`Error from API: ${data.error}`, 'error');
+                    container.innerHTML = `<p style="color: red;">${data.error}</p>`;
+                    return;
+                }
+                
+                if (!data.contacts || data.contacts.length === 0) {
+                    log('No contacts found', 'error');
+                    container.innerHTML = '<p style="color: #6c757d;">No contacts found. Please run: <code>python3 scripts/extract_imessage.py --all</code></p>';
+                    document.getElementById('contactsPagination').style.display = 'none';
+                    return;
+                }
+                
+                log(`Rendering ${data.contacts.length} contacts`);
+                container.innerHTML = data.contacts.map(contact => {
+                    const groupBadge = contact.is_group ? '<span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 10px;">Group</span>' : '';
+                    return `
+                        <div style="display: flex; align-items: center; padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 6px;">
+                            <input type="checkbox" id="contact_${contact.id.replace(/[^a-zA-Z0-9]/g, '_')}" value="${contact.id.replace(/'/g, "&apos;")}" style="margin-right: 10px; width: 20px; height: 20px;" onchange="log('Contact ${contact.id.replace(/'/g, "\\'")} ${this.checked ? 'checked' : 'unchecked'}')">
+                            <div style="flex: 1;">
+                                <strong>${contact.name}</strong>${groupBadge}
+                                <div style="font-size: 0.85em; color: #6c757d; margin-top: 5px;">
+                                    ${contact.message_count.toLocaleString()} messages
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Update pagination
+                const pagination = document.getElementById('contactsPagination');
+                if (contactsTotal > contactsPageSize) {
+                    pagination.style.display = 'block';
+                    document.getElementById('contactsPageInfo').textContent = `Page ${contactsCurrentPage + 1} (${contactsTotal.toLocaleString()} total)`;
+                    document.getElementById('contactsPrev').disabled = contactsCurrentPage === 0;
+                    document.getElementById('contactsNext').disabled = !data.has_more;
+                } else {
+                    pagination.style.display = 'none';
+                }
+                
+                log(`Successfully loaded and rendered ${data.contacts.length} contacts`, 'success');
+            } catch (error) {
+                log(`Error loading contacts: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                container.innerHTML = `<p style="color: red;">Error loading contacts: ${error.message}</p>`;
+            }
+        }
+
+        function selectAllContacts() {
+            const checkboxes = document.querySelectorAll('#rawContacts input[type="checkbox"]');
+            log(`Selecting all ${checkboxes.length} contacts`);
+            checkboxes.forEach(cb => cb.checked = true);
+            log(`Selected ${checkboxes.length} contacts`, 'success');
+        }
+
+        function deselectAllContacts() {
+            const checkboxes = document.querySelectorAll('#rawContacts input[type="checkbox"]');
+            log(`Deselecting all ${checkboxes.length} contacts`);
+            checkboxes.forEach(cb => cb.checked = false);
+            log(`Deselected all contacts`, 'success');
+        }
+
+        async function processSelectedContacts() {
+            log('processSelectedContacts() called');
+            const checkboxes = document.querySelectorAll('#rawContacts input[type="checkbox"]:checked');
+            log(`Found ${checkboxes.length} checked contacts`);
+            const nameInput = document.getElementById('selectedContactsName');
+            const conversationName = nameInput.value.trim();
+            
+            if (checkboxes.length === 0) {
+                log('No contacts selected', 'error');
+                alert('Please select at least one contact to process.');
+                return;
+            }
+            
+            if (!conversationName) {
+                log('No conversation name provided', 'error');
+                alert('Please enter a name for this conversation.');
+                return;
+            }
+            
+            const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+            log(`Selected contact IDs: ${selectedIds.join(', ')}`);
+            log(`Conversation name: "${conversationName}"`);
+            
+            if (!confirm(`Process ${selectedIds.length} contact(s) with name "${conversationName}"? This will rebuild all indexes and may take a few minutes.`)) {
+                log('User cancelled processing');
+                return;
+            }
+            
+            try {
+                log('Creating form data...');
+                const formData = new FormData();
+                formData.append('contact_ids', JSON.stringify(selectedIds));
+                formData.append('conversation_name', conversationName);
+                
+                // Show loading
+                const button = event.target;
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Processing... (this may take a few minutes)';
+                
+                log(`POSTing to ${API_BASE}/process-selected-contacts`);
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/process-selected-contacts`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                log('Response data:', data);
+                
+                if (data.success) {
+                    if (data.job_id) {
+                        log(`Processing started with job_id: ${data.job_id}`, 'success');
+                        activeJobs[data.job_id] = {status: 'running', progress: 0, message: 'Starting...'};
+                        displayProgress();
+                        document.getElementById('progressSection').style.display = 'block';
+                        alert(`Processing started! You can monitor progress above. The job will continue in the background.`);
+                        nameInput.value = '';
+                        // Uncheck all
+                        deselectAllContacts();
+                    } else {
+                        log(`Successfully processed ${data.messages_processed} messages`, 'success');
+                        alert(`Successfully processed ${data.messages_processed.toLocaleString()} messages for "${conversationName}"! Your indexes have been rebuilt.`);
+                        nameInput.value = '';
+                        deselectAllContacts();
+                    }
+                } else {
+                    log('Processing failed', 'error');
+                    alert('Processing failed. Please check the server logs.');
+                }
+                
+                button.disabled = false;
+                button.textContent = originalText;
+            } catch (error) {
+                log(`Error processing contacts: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                alert(`Error: ${error.message}`);
+                const button = event.target;
+                button.disabled = false;
+                button.textContent = 'Process Selected Contacts & Rebuild Indexes';
+            }
+        }
+
+        async function loadAvailableConversations() {
+            log('Loading available conversations from chat.db...');
+            const container = document.getElementById('availableConversations');
+            if (!container) {
+                log('Available conversations container not found!', 'error');
+                return;
+            }
+            
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading conversations from chat.db...</p></div>';
+            
+            try {
+                const url = `${API_BASE}/available-conversations?limit=100`;
+                log(`Fetching ${url}`);
+                
+                const startTime = Date.now();
+                const response = await fetch(url);
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                log(`Received ${data.conversations ? data.conversations.length : 0} conversations`);
+                
+                if (data.error) {
+                    log(`Error from API: ${data.error}`, 'error');
+                    container.innerHTML = `<p style="color: red;">${data.error}</p>`;
+                    return;
+                }
+                
+                if (!data.conversations || data.conversations.length === 0) {
+                    log('No conversations found in chat.db', 'error');
+                    container.innerHTML = '<p style="color: #6c757d;">No conversations found in chat.db</p>';
+                    return;
+                }
+                
+                log(`Rendering ${data.conversations.length} conversations`);
+                container.innerHTML = data.conversations.map(conv => {
+                    const groupBadge = conv.is_group ? '<span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; margin-left: 10px;">Group</span>' : '';
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; margin: 5px 0; background: #f8f9fa; border-radius: 6px;">
+                            <div>
+                                <strong>${conv.name}</strong>${groupBadge}
+                                <div style="font-size: 0.85em; color: #6c757d; margin-top: 5px;">
+                                    ${conv.message_count.toLocaleString()} messages
+                                </div>
+                            </div>
+                            <div>
+                                <input type="text" id="name_${conv.id.replace(/[^a-zA-Z0-9]/g, '_')}" placeholder="Name this conversation" style="padding: 6px; margin-right: 10px; border: 1px solid #dee2e6; border-radius: 4px; width: 200px;">
+                                <button onclick="extractConversation('${conv.id.replace(/'/g, "\\'")}', '${conv.id.replace(/[^a-zA-Z0-9]/g, '_')}')" style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Import</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                log(`Successfully loaded and rendered ${data.conversations.length} conversations`, 'success');
+            } catch (error) {
+                log(`Error loading conversations: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                container.innerHTML = `<p style="color: red;">Error loading conversations: ${error.message}</p>`;
+            }
+        }
+
+        async function extractConversation(conversationId, nameFieldId) {
+            log(`extractConversation() called for: ${conversationId}`);
+            const nameInput = document.getElementById(`name_${nameFieldId}`);
+            const conversationName = nameInput.value.trim() || conversationId;
+            log(`Conversation name: "${conversationName}"`);
+            
+            if (!conversationName) {
+                log('No conversation name provided', 'error');
+                alert('Please enter a name for this conversation');
+                return;
+            }
+            
+            try {
+                log('Creating form data...');
+                const formData = new FormData();
+                formData.append('conversation_id', conversationId);
+                formData.append('conversation_name', conversationName);
+                formData.append('include_group_chats', 'false');
+                
+                log(`POSTing to ${API_BASE}/extract-conversation`);
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/extract-conversation`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                log('Response data:', data);
+                
+                if (data.success) {
+                    log(`Successfully extracted ${data.messages_extracted} messages`, 'success');
+                    alert(data.message || `Successfully extracted ${data.messages_extracted} messages from "${conversationName}"! They are now available in the contact list above. Select them and process to add to indexes.`);
+                    nameInput.value = '';
+                    // Reload contacts to show the new ones
+                    log('Reloading contacts...');
+                    loadRawContacts();
+                } else {
+                    log('Extraction failed', 'error');
+                    alert('Import failed. Please try again.');
+                }
+            } catch (error) {
+                log(`Error extracting conversation: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function importHtmlExport() {
+            log('importHtmlExport() called');
+            const fileInput = document.getElementById('htmlFile');
+            const nameInput = document.getElementById('htmlConversationName');
+            const isGroupCheckbox = document.getElementById('htmlIsGroup');
+            
+            const file = fileInput.files[0];
+            const name = nameInput.value.trim();
+            
+            log(`File: ${file ? file.name : 'none'}, Name: "${name}", Is Group: ${isGroupCheckbox.checked}`);
+            
+            if (!file || !name) {
+                log('Missing file or name', 'error');
+                alert('Please select an HTML file and enter a conversation name.');
+                return;
+            }
+            
+            try {
+                log('Creating form data...');
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('conversation_name', name);
+                formData.append('is_group', isGroupCheckbox.checked);
+                
+                log(`POSTing to ${API_BASE}/import-html-export (file size: ${(file.size / 1024).toFixed(2)} KB)`);
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/import-html-export`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+                log(`Response received after ${elapsed}s: ${response.status} ${response.statusText}`);
+                
+                const data = await response.json();
+                log('Response data:', data);
+                
+                if (data.success) {
+                    log(`Successfully imported ${data.messages_imported} messages`, 'success');
+                    alert(data.message || `Successfully imported ${data.messages_imported} messages from "${name}"! They are now available in the contact list above. Select them and process to add to indexes.`);
+                    fileInput.value = '';
+                    nameInput.value = '';
+                    isGroupCheckbox.checked = false;
+                    // Reload contacts to show the new ones
+                    log('Reloading contacts...');
+                    loadRawContacts();
+                } else {
+                    log('Import failed', 'error');
+                    alert('Import failed. Please try again.');
+                }
+            } catch (error) {
+                log(`Error importing HTML: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        // Job tracking
+        let activeJobs = {};
+        let jobPollInterval = null;
+
+        async function loadJobProgress() {
+            try {
+                const response = await fetch(`${API_BASE}/jobs`);
+                const data = await response.json();
+                
+                if (data.jobs && Object.keys(data.jobs).length > 0) {
+                    activeJobs = data.jobs;
+                    displayProgress();
+                    document.getElementById('progressSection').style.display = 'block';
+                } else {
+                    activeJobs = {};
+                    document.getElementById('progressSection').style.display = 'none';
+                }
+            } catch (error) {
+                log(`Error loading job progress: ${error.message}`, 'error');
+            }
+        }
+
+        function displayProgress() {
+            const container = document.getElementById('progressContainer');
+            if (!container) return;
+            
+            container.innerHTML = Object.entries(activeJobs).map(([jobId, job]) => {
+                const progressPercent = Math.round(job.progress * 100);
+                const statusClass = job.status === 'running' ? 'running' : 
+                                   job.status === 'completed' ? 'completed' : 'error';
+                
+                return `
+                    <div class="progress-item">
+                        <div class="progress-header">
+                            <span class="progress-title">${job.message || 'Processing...'}</span>
+                            <span class="progress-status ${statusClass}">${job.status.toUpperCase()}</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: ${progressPercent}%">
+                                ${progressPercent}%
+                            </div>
+                        </div>
+                        <div class="progress-message">${job.message || 'Processing...'}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function startJobPolling() {
+            if (jobPollInterval) return;
+            jobPollInterval = setInterval(loadJobProgress, 2000); // Poll every 2 seconds
+            loadJobProgress(); // Load immediately
+        }
+
+        function stopJobPolling() {
+            if (jobPollInterval) {
+                clearInterval(jobPollInterval);
+                jobPollInterval = null;
+            }
+        }
+
+        // Load conversations on page load
+        loadConversations();
+        loadChatConversations();
+        
+        // Check Ollama status on page load
+        checkOllamaStatus();
+        
+        // Check Ollama status periodically (every 30 seconds)
+        setInterval(checkOllamaStatus, 30000);
+
+        // Source modal functionality
+        function toggleSources(header) {
+            const content = header.nextElementSibling;
+            const isCollapsed = content.style.display === 'none';
+            content.style.display = isCollapsed ? 'block' : 'none';
+            header.classList.toggle('collapsed', !isCollapsed);
+        }
+
+        function showSourceModal(sourceIndex) {
+            const modal = document.getElementById('sourceModal');
+            const modalTitle = document.getElementById('sourceModalTitle');
+            const modalBody = document.getElementById('sourceModalBody');
+            
+            // Find the message that contains this source
+            const messages = document.querySelectorAll('.message.assistant');
+            let sourceData = null;
+            
+            for (let msg of messages) {
+                if (msg.dataset.sources) {
+                    try {
+                        const sources = JSON.parse(msg.dataset.sources);
+                        if (sources[sourceIndex]) {
+                            sourceData = sources[sourceIndex];
+                            break;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing sources:', e);
+                    }
+                }
+            }
+            
+            if (!sourceData) {
+                alert('Source not found');
+                return;
+            }
+            
+            // Handle both old string format and new object format
+            if (typeof sourceData === 'string') {
+                modalTitle.textContent = 'Reference';
+                modalBody.innerHTML = formatMessagesForModal(sourceData);
+            } else {
+                const conversation = sourceData.conversation || 'Unknown';
+                const date = sourceData.date || 'Unknown date';
+                modalTitle.textContent = `${conversation} - ${date}`;
+                modalBody.innerHTML = formatMessagesForModal(sourceData.full_content || sourceData.preview || '');
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function formatMessagesForModal(content) {
+            // Parse messages from content - look for patterns like [date] (direction): message
+            // Or just split by lines and format as simple chat bubbles
+            const lines = content.split('\n').filter(line => line.trim());
+            let html = '';
+            
+            lines.forEach(line => {
+                // Try to detect direction from patterns
+                const isSent = line.includes('(me,') || line.toLowerCase().includes('you:') || line.match(/^\[.*\]\s*\(me/);
+                const direction = isSent ? 'sent' : 'received';
+                
+                // Clean up the line - remove timestamps and direction markers
+                let cleanLine = line
+                    .replace(/\[.*?\]\s*/g, '') // Remove [timestamp]
+                    .replace(/\([^,]+,\s*msg_id:\d+\)\s*/g, '') // Remove (them, msg_id:xxx)
+                    .replace(/^\(me,\s*msg_id:\d+\)\s*/g, '') // Remove (me, msg_id:xxx)
+                    .replace(/^(them|me):\s*/i, '') // Remove "them:" or "me:"
+                    .trim();
+                
+                if (cleanLine) {
+                    html += `
+                        <div class="message-line-container ${direction}">
+                            <div class="message-info">
+                                <span class="message-sender">${direction === 'sent' ? 'You' : 'Them'}</span>
+                            </div>
+                            <div class="message-content">${escapeHtml(cleanLine)}</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            return html || `<div class="message-content">${escapeHtml(content)}</div>`;
+        }
+
+        function closeSourceModal() {
+            const modal = document.getElementById('sourceModal');
+            modal.classList.remove('active');
+        }
+
+        // Close modal on outside click
+        document.addEventListener('click', function(e) {
+            const modal = document.getElementById('sourceModal');
+            if (e.target === modal) {
+                closeSourceModal();
+            }
+        });
+    </script>
+    
+    <!-- Source Modal -->
+    <div id="sourceModal" class="source-modal">
+        <div class="source-modal-content">
+            <div class="source-modal-header">
+                <div class="source-modal-title" id="sourceModalTitle">Reference</div>
+                <button class="source-modal-close" onclick="closeSourceModal()">×</button>
+            </div>
+            <div class="source-modal-body" id="sourceModalBody"></div>
+        </div>
+    </div>
+</body>
+</html>

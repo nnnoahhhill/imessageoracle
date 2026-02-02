@@ -1,0 +1,28 @@
+The `build_indexes.py` script is still encountering an 'EOF' error when trying to communicate with your local Ollama server. This means the problem lies with your Ollama setup, not with the Python scripts themselves.
+
+Here's a checklist to help you troubleshoot your Ollama installation:
+
+1.  **Verify Ollama Server Status:**
+    *   Ensure the Ollama application is actively running on your machine.
+    *   If it's running, try quitting and restarting the Ollama application completely. This often resolves transient connection issues.
+
+2.  **Check for `nomic-embed-text` Model:**
+    *   Open your terminal and run the command: `ollama list`
+    *   Confirm that `nomic-embed-text` is listed among your installed models.
+    *   If it's not present, download it by running: `ollama pull nomic-embed-text`
+
+3.  **Monitor Resource Usage:**
+    *   While `scripts/build_indexes.py` is attempting to generate embeddings, open your system's activity monitor (e.g., Activity Monitor on macOS, Task Manager on Windows, or `htop` on Linux).
+    *   Observe the CPU and RAM usage, especially for the Ollama process. High resource consumption or a sudden crash of the Ollama process could indicate that your system is running out of memory or CPU during the embedding generation.
+
+4.  **Check Ollama's Internal Logs:**
+    *   Ollama applications usually have their own logs that can provide more detailed error messages. The location varies by operating system. Search online for "Ollama logs [your operating system]" to find them. These logs might explain why the connection is being closed ('EOF').
+
+5.  **Ensure Ollama is Updated:**
+    *   Make sure your Ollama application is updated to the latest version. Outdated versions can sometimes have bugs or compatibility issues.
+
+After you have performed these checks and are confident that your Ollama server and `nomic-embed-text` model are functioning correctly, please try running the `scripts/build_indexes.py` command again:
+
+    `./oracle_venv/bin/python scripts/build_indexes.py`
+
+This embedding error is external to the Python code and needs to be resolved within your Ollama environment.

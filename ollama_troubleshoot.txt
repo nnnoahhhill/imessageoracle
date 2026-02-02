@@ -1,0 +1,10 @@
+It looks like the `build_indexes.py` script is *still* running into the same `EOF` error from your Ollama server. The fact that 'Ollama embeddings initialized and tested successfully' appears, but then fails later, suggests a transient issue with Ollama itself, possibly under sustained load.
+
+Here are a few more in-depth things to check on your Ollama setup:
+
+1.  **Monitor system resources:** While `scripts/build_indexes.py` is running, open your system's activity monitor (like Activity Monitor on macOS or Task Manager on Windows) and observe CPU and RAM usage. See if your system is running out of memory or CPU, which could cause Ollama to crash or become unresponsive.
+2.  **Ollama logs:** Check the actual logs for your Ollama application. There might be more detailed error messages there explaining why it's closing connections or failing. The location of these logs can vary by OS, but a quick search for 'Ollama logs [your OS]' should help.
+3.  **Try a smaller embedding model (temporary test):** If you suspect resource issues with `nomic-embed-text`, you could temporarily try a smaller embedding model (e.g., `all-minilm`) if one is available in Ollama, just to see if the process completes. This would involve changing `ollama_model` in your `config.yaml` to the alternative model. (Remember to change it back after testing.)
+4.  **Ensure Ollama is updated:** Make sure your Ollama application is updated to the latest version.
+
+This error is definitely coming from your local Ollama setup, and not from the Python scripts themselves. Once you've addressed these potential Ollama issues, please try running `scripts/build_indexes.py` again.
